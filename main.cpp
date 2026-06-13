@@ -1,359 +1,281 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <exception>
-#include <algorithm>
 #include <fstream>
-#include <sstream>
 
 using namespace std;
 
-// =========================================================
-// 1. EXCEPCIONES PERSONALIZADAS
-// =========================================================
-class MaterialNoEncontradoException : public exception {
-public:
-    const char* what() const throw() override {
-        return "ERROR: El material bibliografico solicitado no existe.";
-    }
-};
-
-class SinStockException : public exception {
-public:
-    const char* what() const throw() override {
-        return "ERROR: Ejemplares agotados. No hay stock disponible para prestamo.";
-    }
-};
-
-// 👁️ NUEVA EXCEPCIÓN: Para cuando ingresan letras en lugar de números
-class EntradaInvalidaException : public exception {
-public:
-    const char* what() const throw() override {
-        return "ERROR: No puede poner texto en esta opcion.";
-    }
-};
-
-// 👁️ NUEVA EXCEPCIÓN: Para opciones fuera del rango (ej. 8 o -1)
-class OpcionMenuInvalidaException : public exception {
-public:
-    const char* what() const throw() override {
-        return "ERROR: Esa opcion no esta disponible en el menu.";
-    }
-};
-
-// =========================================================
-// 2. FUNCIÓN AUXILIAR DE VALIDACIÓN (Evita que el programa se rompa)
-// =========================================================
-int leerEnteroSeguro() {
-    int valor;
-    cin >> valor;
-    
-    // Si el usuario ingresó texto en vez de número, cin.fail() será verdadero
-    if (cin.fail()) {
-        cin.clear(); // Limpiamos el estado de error de la consola
-        cin.ignore(10000, '\n'); // Descartamos la basura que quedó en el buffer
-        throw EntradaInvalidaException(); // Lanzamos tu excepción personalizada
-    }
-    return valor;
-}
-
-// =========================================================
-// 3. CLASE ABSTRACTA PURA
-// =========================================================
-class MaterialBibliografico {
+// clase principal para los materiales
+class Material {
 protected:
-    string codigo;
-    string titulo;
-    int ejemplaresTotales;
-    int ejemplaresDisponibles;
+    string cod; // codigo del material
+    string tit; // titulo
+    int cant_tot; // cantidad en total
+    int cant_disp; // cantidad que queda disponible
 
 public:
-    MaterialBibliografico(string codigo, string titulo, int totales, int disponibles) 
-        : codigo(codigo), titulo(titulo), ejemplaresTotales(totales), ejemplaresDisponibles(disponibles) {}
-
-    virtual ~MaterialBibliografico() {}
-
-    virtual void mostrarDetalles() const = 0;
-    virtual double calcularPenalidad(int diasRetraso) const = 0;
-    virtual string aCadenaCSV() const = 0;
-
-    string getCodigo() const { return codigo; }
-    
-    void prestarEjemplar() {
-        if (ejemplaresDisponibles > 0) ejemplaresDisponibles--;
-        else throw SinStockException();
-    }
-    
-    void devolverEjemplar() {
-        if (ejemplaresDisponibles < ejemplaresTotales) ejemplaresDisponibles++;
+    // constructor basico
+    Material(string c, string t, int tot, int disp) {
+        cod = c;
+        tit = t;
+        cant_tot = tot;
+        cant_disp = disp;
     }
 
-    friend ostream& operator<<(ostream& os, const MaterialBibliografico& mat) {
-        os << "[" << mat.codigo << "] " << mat.titulo 
-           << " | Disponibles: " << mat.ejemplaresDisponibles << "/" << mat.ejemplaresTotales;
-        return os;
+    virtual ~Material() {}
+
+    // funcion para mostrar datos en pantalla
+    virtual void mostrar() {
+        cout << "codigo: " << cod << " | titulo: " << tit;
+        cout << " | disp: " << cant_disp << "/" << cant_tot;
     }
+
+    // para obtener el codigo
+    string get_cod() {
+        return cod;
+    }
+
+    // funcion para prestar
+    void prestar() {
+        if (cant_disp > 0) {
+            cant_disp--;
+            cout << "prestamo exitoso.\n";
+        } else {
+            cout << "error: no hay ejemplares disponibles.\n";
+        }
+    }
+
+    // funcion para devolver
+    void devolver() {
+        if (cant_disp < cant_tot) {
+            cant_disp++;
+            cout << "devolucion exitosa.\n";
+        } else {
+            cout << "error: ya estan todos los ejemplares devueltos.\n";
+        }
+    }
+
+    // funcion virtual para guardar en archivo
+    virtual string guardar_texto() = 0;
 };
 
-// =========================================================
-// 4. CLASES DERIVADAS
-// =========================================================
-class Libro : public MaterialBibliografico {
+// clase para los libros que hereda de material
+class Libro : public Material {
 private:
     string autor;
-    int numeroPaginas;
-public:
-    Libro(string c, string t, int tot, int disp, string a, int np)
-        : MaterialBibliografico(c, t, tot, disp), autor(a), numeroPaginas(np) {}
+    int num_pags; // numero de paginas
 
-    void mostrarDetalles() const override {
-        cout << " [LIBRO] " << codigo << " - " << titulo << " | Autor: " << autor 
-             << " | Pags: " << numeroPaginas << " | Stock: " << ejemplaresDisponibles << "/" << ejemplaresTotales << endl;
+public:
+    Libro(string c, string t, int tot, int disp, string a, int p) : Material(c, t, tot, disp) {
+        autor = a;
+        num_pags = p;
     }
 
-    double calcularPenalidad(int diasRetraso) const override { return diasRetraso * 2.50; }
+    void mostrar() override {
+        cout << "[libro] ";
+        Material::mostrar();
+        cout << " | autor: " << autor << " | pags: " << num_pags << "\n";
+    }
 
-    string aCadenaCSV() const override {
-        return "L," + codigo + "," + titulo + "," + to_string(ejemplaresTotales) + "," + 
-               to_string(ejemplaresDisponibles) + "," + autor + "," + to_string(numeroPaginas);
+    string guardar_texto() override {
+        // juntamos todo con comas para guardar
+        return "L," + cod + "," + tit + "," + to_string(cant_tot) + "," + to_string(cant_disp) + "," + autor + "," + to_string(num_pags);
     }
 };
 
-class Revista : public MaterialBibliografico {
+// clase para revistas
+class Revista : public Material {
 private:
-    int numeroEdicion;
-    string mesPublicacion;
-public:
-    Revista(string c, string t, int tot, int disp, int ne, string m)
-        : MaterialBibliografico(c, t, tot, disp), numeroEdicion(ne), mesPublicacion(m) {}
+    int num_ed; // numero de edicion
+    string mes; // mes de salida
 
-    void mostrarDetalles() const override {
-        cout << " [REVISTA] " << codigo << " - " << titulo << " | Edicion: " << numeroEdicion 
-             << " | Mes: " << mesPublicacion << " | Stock: " << ejemplaresDisponibles << "/" << ejemplaresTotales << endl;
+public:
+    Revista(string c, string t, int tot, int disp, int ne, string m) : Material(c, t, tot, disp) {
+        num_ed = ne;
+        mes = m;
     }
 
-    double calcularPenalidad(int diasRetraso) const override { return diasRetraso * 1.20; }
+    void mostrar() override {
+        cout << "[revista] ";
+        Material::mostrar();
+        cout << " | edicion: " << num_ed << " | mes: " << mes << "\n";
+    }
 
-    string aCadenaCSV() const override {
-        return "R," + codigo + "," + titulo + "," + to_string(ejemplaresTotales) + "," + 
-               to_string(ejemplaresDisponibles) + "," + to_string(numeroEdicion) + "," + mesPublicacion;
+    string guardar_texto() override {
+        return "R," + cod + "," + tit + "," + to_string(cant_tot) + "," + to_string(cant_disp) + "," + to_string(num_ed) + "," + mes;
     }
 };
 
-// =========================================================
-// 5. PLANTILLA GENÉRICA + STL + MANEJO DE ARCHIVOS
-// =========================================================
-template <class T>
-class Inventario {
-private:
-    vector<T*> listaElementos;
-    string nombreArchivo = "libreria_datos.txt";
+int main() {
+    // lista para guardar todo
+    vector<Material*> lista;
+    int opc = 0; // opcion del menu
+    string nom_arch = "datos_libreria.txt";
 
-public:
-    ~Inventario() {
-        guardarEnArchivo();
-        for (auto& elemento : listaElementos) delete elemento;
-        listaElementos.clear();
-    }
-
-    string generarCodigoAutomatico() const {
-        int maxCod = 0;
-        for (const auto& elemento : listaElementos) {
-            string codStr = elemento->getCodigo();
-            string numStr = "";
-            for (char c : codStr) {
-                if (isdigit(c)) numStr += c;
-            }
-            if (!numStr.empty()) {
-                try {
-                    int num = stoi(numStr);
-                    if (num > maxCod) maxCod = num;
-                } catch (...) {}
-            }
-        }
-        maxCod++;
-        
-        stringstream ss;
-        if (maxCod < 10) ss << "00" << maxCod;
-        else if (maxCod < 100) ss << "0" << maxCod;
-        else ss << maxCod;
-        
-        return ss.str();
-    }
-
-    void agregar(T* elemento) {
-        listaElementos.push_back(elemento);
-        cout << "=> Registrado exitosamente.\n";
-    }
-
-    void mostrarTodos() const {
-        if (listaElementos.empty()) {
-            cout << "El inventario esta vacio.\n";
-            return;
-        }
-        for (const auto& elemento : listaElementos) elemento->mostrarDetalles();
-    }
-
-    T* buscarPorCodigo(string codigoBuscado) {
-        auto it = find_if(listaElementos.begin(), listaElementos.end(),
-                          [&codigoBuscado](T* elemento) { return elemento->getCodigo() == codigoBuscado; });
-        if (it != listaElementos.end()) return *it;
-        throw MaterialNoEncontradoException();
-    }
-
-    void registrarPrestamo(string codigo) {
-        T* elemento = buscarPorCodigo(codigo);
-        elemento->prestarEjemplar();
-        cout << "=> Prestamo registrado. Stock restante: " << *elemento << "\n";
-    }
-
-    void registrarDevolucion(string codigo) {
-        T* elemento = buscarPorCodigo(codigo);
-        elemento->devolverEjemplar();
-        cout << "=> Devolucion registrada. Stock actual: " << *elemento << "\n";
-    }
-
-    void eliminar(string codigo) {
-        buscarPorCodigo(codigo);
-        auto it = remove_if(listaElementos.begin(), listaElementos.end(),
-                            [&codigo](T* elemento) { 
-                                if (elemento->getCodigo() == codigo) {
-                                    delete elemento; return true;
-                                } return false;
-                            });
-        listaElementos.erase(it, listaElementos.end());
-        cout << "=> Material eliminado correctamente.\n";
-    }
-
-    void guardarEnArchivo() const {
-        ofstream archivo(nombreArchivo);
-        if (archivo.is_open()) {
-            for (const auto& elemento : listaElementos) {
-                archivo << elemento->aCadenaCSV() << "\n";
-            }
-            archivo.close();
-        }
-    }
-
-    void cargarDeArchivo() {
-        ifstream archivo(nombreArchivo);
-        string linea, tipo, cod, tit, autor_mes;
-        int tot, disp, pags_ed;
-
-        if (archivo.is_open()) {
-            while (getline(archivo, linea)) {
-                stringstream ss(linea);
-                string token;
-                vector<string> datos;
-                
-                while (getline(ss, token, ',')) datos.push_back(token);
-                if (datos.empty()) continue;
-
-                tipo = datos[0]; cod = datos[1]; tit = datos[2];
-                tot = stoi(datos[3]); disp = stoi(datos[4]);
-
-                if (tipo == "L") {
-                    autor_mes = datos[5]; pags_ed = stoi(datos[6]);
-                    listaElementos.push_back(new Libro(cod, tit, tot, disp, autor_mes, pags_ed));
-                } else if (tipo == "R") {
-                    pags_ed = stoi(datos[5]); autor_mes = datos[6];
-                    listaElementos.push_back(new Revista(cod, tit, tot, disp, pags_ed, autor_mes));
+    // intentamos leer el archivo si existe
+    ifstream leer_arch(nom_arch);
+    if (leer_arch.is_open()) {
+        string linea;
+        while (getline(leer_arch, linea)) {
+            // separamos la linea por las comas
+            string datos[7];
+            int pos = 0;
+            string temp = "";
+            for (int i = 0; i < linea.length(); i++) {
+                if (linea[i] == ',') {
+                    datos[pos] = temp;
+                    pos++;
+                    temp = "";
+                } else {
+                    temp += linea[i];
                 }
             }
-            archivo.close();
+            datos[pos] = temp; // el ultimo pedazo
+
+            if (datos[0] == "L") {
+                int tot = stoi(datos[3]);
+                int disp = stoi(datos[4]);
+                int p = stoi(datos[6]);
+                lista.push_back(new Libro(datos[1], datos[2], tot, disp, datos[5], p));
+            } else if (datos[0] == "R") {
+                int tot = stoi(datos[3]);
+                int disp = stoi(datos[4]);
+                int ne = stoi(datos[5]);
+                lista.push_back(new Revista(datos[1], datos[2], tot, disp, ne, datos[6]));
+            }
+        }
+        leer_arch.close();
+    }
+
+    // ciclo del menu
+    while (opc != 7) {
+        cout << "\n--- menu del sistema ---\n";
+        cout << "1. agregar libro\n";
+        cout << "2. agregar revista\n";
+        cout << "3. mostrar catalogo\n";
+        cout << "4. prestar material\n";
+        cout << "5. devolver material\n";
+        cout << "6. borrar material\n";
+        cout << "7. salir\n";
+        cout << "ingresa opcion: ";
+        cin >> opc;
+
+        // si ponen una letra por error
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "error: pon un numero valido.\n";
+            continue;
+        }
+
+        if (opc == 1) {
+            string c, t, a;
+            int tot, p;
+            cout << "codigo: ";
+            cin >> c;
+            cout << "titulo: ";
+            cin.ignore();
+            getline(cin, t);
+            cout << "autor: ";
+            getline(cin, a);
+            cout << "paginas: ";
+            cin >> p;
+            cout << "cantidad: ";
+            cin >> tot;
+
+            lista.push_back(new Libro(c, t, tot, tot, a, p));
+            cout << "libro guardado.\n";
+
+        } else if (opc == 2) {
+            string c, t, m;
+            int tot, ne;
+            cout << "codigo: ";
+            cin >> c;
+            cout << "titulo: ";
+            cin.ignore();
+            getline(cin, t);
+            cout << "numero edicion: ";
+            cin >> ne;
+            cout << "mes: ";
+            cin >> m;
+            cout << "cantidad: ";
+            cin >> tot;
+
+            lista.push_back(new Revista(c, t, tot, tot, ne, m));
+            cout << "revista guardada.\n";
+
+        } else if (opc == 3) {
+            if (lista.empty()) {
+                cout << "no hay nada registrado.\n";
+            } else {
+                for (int i = 0; i < lista.size(); i++) {
+                    lista[i]->mostrar();
+                }
+            }
+
+        } else if (opc == 4) {
+            string cod_busc;
+            cout << "codigo para prestar: ";
+            cin >> cod_busc;
+            bool hallado = false;
+            for (int i = 0; i < lista.size(); i++) {
+                if (lista[i]->get_cod() == cod_busc) {
+                    lista[i]->prestar();
+                    hallado = true;
+                    break;
+                }
+            }
+            if (!hallado) {
+                cout << "codigo no existe.\n";
+            }
+
+        } else if (opc == 5) {
+            string cod_busc;
+            cout << "codigo para devolver: ";
+            cin >> cod_busc;
+            bool hallado = false;
+            for (int i = 0; i < lista.size(); i++) {
+                if (lista[i]->get_cod() == cod_busc) {
+                    lista[i]->devolver();
+                    hallado = true;
+                    break;
+                }
+            }
+            if (!hallado) {
+                cout << "codigo no existe.\n";
+            }
+
+        } else if (opc == 6) {
+            string cod_busc;
+            cout << "codigo para borrar: ";
+            cin >> cod_busc;
+            bool hallado = false;
+            for (int i = 0; i < lista.size(); i++) {
+                if (lista[i]->get_cod() == cod_busc) {
+                    delete lista[i]; // liberamos memoria
+                    lista.erase(lista.begin() + i);
+                    cout << "borrado correctamente.\n";
+                    hallado = true;
+                    break;
+                }
+            }
+            if (!hallado) {
+                cout << "codigo no existe.\n";
+            }
+
+        } else if (opc == 7) {
+            cout << "guardando y saliendo...\n";
+            ofstream guardar_arch(nom_arch);
+            if (guardar_arch.is_open()) {
+                for (int i = 0; i < lista.size(); i++) {
+                    guardar_arch << lista[i]->guardar_texto() << "\n";
+                }
+                guardar_arch.close();
+            }
+        } else {
+            cout << "opcion invalida.\n";
         }
     }
-};
 
-// =========================================================
-// 6. BLOQUE PRINCIPAL
-// =========================================================
-int main() {
-    Inventario<MaterialBibliografico> miLibreria;
-    miLibreria.cargarDeArchivo();
-    
-    int opcion = 0; // Inicializamos para evitar basura en memoria
-
-    do {
-        cout << "\n=== SISTEMA DE LIBRERIA UCSM ===" << endl;
-        cout << "1. Agregar Libro Nuevo" << endl;
-        cout << "2. Agregar Revista Nueva" << endl;
-        cout << "3. Mostrar Catalogo Completo" << endl;
-        cout << "4. Prestar Ejemplar" << endl;
-        cout << "5. Devolver Ejemplar" << endl;
-        cout << "6. Eliminar Material" << endl;
-        cout << "7. Guardar y Salir" << endl;
-        cout << "Ingrese opcion: ";
-
-        try {
-            // Usamos nuestra función segura en vez de cin >> opcion
-            opcion = leerEnteroSeguro();
-
-            // Validamos que no pongan números negativos ni mayores a 7
-            if (opcion < 1 || opcion > 7) {
-                throw OpcionMenuInvalidaException();
-            }
-
-            if (opcion == 1) {
-                string tit, aut; int pags, stock;
-                string cod = miLibreria.generarCodigoAutomatico();
-                cout << "=> Codigo asignado automaticamente: " << cod << endl;
-                cout << "Titulo: "; 
-                cin >> ws;
-                getline(cin, tit);
-                cout << "Autor: "; 
-                getline(cin, aut);
-                
-                cout << "Paginas: "; 
-                pags = leerEnteroSeguro(); // Protegemos las lecturas internas
-                
-                cout << "Cantidad de ejemplares que ingresan: "; 
-                stock = leerEnteroSeguro();
-                
-                miLibreria.agregar(new Libro(cod, tit, stock, stock, aut, pags));
-            } 
-            else if (opcion == 2) {
-                string tit, mes; int ed, stock;
-                string cod = miLibreria.generarCodigoAutomatico();
-                cout << "=> Codigo asignado automaticamente: " << cod << endl;
-                cout << "Titulo: "; 
-                cin >> ws;
-                getline(cin, tit);
-                
-                cout << "Edicion Nro: "; 
-                ed = leerEnteroSeguro();
-                
-                cout << "Mes: "; cin >> mes;
-                
-                cout << "Cantidad de ejemplares que ingresan: "; 
-                stock = leerEnteroSeguro();
-                
-                miLibreria.agregar(new Revista(cod, tit, stock, stock, ed, mes));
-            }
-            else if (opcion == 3) {
-                cout << "\n--- CATALOGO ---" << endl;
-                miLibreria.mostrarTodos();
-            }
-            else if (opcion == 4) {
-                string cod; cout << "Codigo a prestar: "; cin >> cod;
-                miLibreria.registrarPrestamo(cod);
-            }
-            else if (opcion == 5) {
-                string cod; cout << "Codigo a devolver: "; cin >> cod;
-                miLibreria.registrarDevolucion(cod);
-            }
-            else if (opcion == 6) {
-                string cod; cout << "Codigo a eliminar: "; cin >> cod;
-                miLibreria.eliminar(cod);
-            }
-        } 
-        catch (const exception& e) {
-            // Cualquier excepción que hayamos lanzado arriba, cae aquí y no rompe el while
-            cout << e.what() << endl;
-        }
-
-    } while (opcion != 7);
-
-    cout << "Guardando datos y cerrando el sistema..." << endl;
     return 0;
 }
