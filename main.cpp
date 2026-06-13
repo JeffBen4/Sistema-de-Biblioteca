@@ -156,6 +156,31 @@ public:
         listaElementos.clear();
     }
 
+    string generarCodigoAutomatico() const {
+        int maxCod = 0;
+        for (const auto& elemento : listaElementos) {
+            string codStr = elemento->getCodigo();
+            string numStr = "";
+            for (char c : codStr) {
+                if (isdigit(c)) numStr += c;
+            }
+            if (!numStr.empty()) {
+                try {
+                    int num = stoi(numStr);
+                    if (num > maxCod) maxCod = num;
+                } catch (...) {}
+            }
+        }
+        maxCod++;
+        
+        stringstream ss;
+        if (maxCod < 10) ss << "00" << maxCod;
+        else if (maxCod < 100) ss << "0" << maxCod;
+        else ss << maxCod;
+        
+        return ss.str();
+    }
+
     void agregar(T* elemento) {
         listaElementos.push_back(elemento);
         cout << "=> Registrado exitosamente.\n";
@@ -270,8 +295,9 @@ int main() {
             }
 
             if (opcion == 1) {
-                string cod, tit, aut; int pags, stock;
-                cout << "Codigo: "; cin >> cod;
+                string tit, aut; int pags, stock;
+                string cod = miLibreria.generarCodigoAutomatico();
+                cout << "=> Codigo asignado automaticamente: " << cod << endl;
                 cout << "Titulo: "; 
                 cin >> ws;
                 getline(cin, tit);
@@ -287,8 +313,9 @@ int main() {
                 miLibreria.agregar(new Libro(cod, tit, stock, stock, aut, pags));
             } 
             else if (opcion == 2) {
-                string cod, tit, mes; int ed, stock;
-                cout << "Codigo: "; cin >> cod;
+                string tit, mes; int ed, stock;
+                string cod = miLibreria.generarCodigoAutomatico();
+                cout << "=> Codigo asignado automaticamente: " << cod << endl;
                 cout << "Titulo: "; 
                 cin >> ws;
                 getline(cin, tit);
