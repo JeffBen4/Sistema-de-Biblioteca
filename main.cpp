@@ -272,8 +272,11 @@ int main() {
             if (opcion == 1) {
                 string cod, tit, aut; int pags, stock;
                 cout << "Codigo: "; cin >> cod;
-                cout << "Titulo (sin espacios): "; cin >> tit;
-                cout << "Autor (sin espacios): "; cin >> aut;
+                cout << "Titulo: "; 
+                cin >> ws;
+                getline(cin, tit);
+                cout << "Autor: "; 
+                getline(cin, aut);
                 
                 cout << "Paginas: "; 
                 pags = leerEnteroSeguro(); // Protegemos las lecturas internas
@@ -286,7 +289,9 @@ int main() {
             else if (opcion == 2) {
                 string cod, tit, mes; int ed, stock;
                 cout << "Codigo: "; cin >> cod;
-                cout << "Titulo (sin espacios): "; cin >> tit;
+                cout << "Titulo: "; 
+                cin >> ws;
+                getline(cin, tit);
                 
                 cout << "Edicion Nro: "; 
                 ed = leerEnteroSeguro();
