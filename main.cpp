@@ -8,6 +8,9 @@
 
 using namespace std;
 
+// =========================================================
+// 1. EXCEPCIONES PERSONALIZADAS
+// =========================================================
 class MaterialNoEncontradoException : public exception {
 public:
     const char* what() const throw() override {
