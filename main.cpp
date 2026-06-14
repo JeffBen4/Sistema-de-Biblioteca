@@ -8,9 +8,6 @@
 
 using namespace std;
 
-// =========================================================
-// 1. BATERÍA DE EXCEPCIONES PERSONALIZADAS
-// =========================================================
 class MaterialNoEncontradoException : public exception {
 public:
     const char* what() const throw() override {
@@ -53,9 +50,6 @@ public:
     }
 };
 
-// =========================================================
-// 2. FUNCIÓN DE LECTURA BLINDADA (Validación estricta)
-// =========================================================
 int leerEnteroEstricto(bool permitirCero = false) {
     int valor;
     cin >> valor;
@@ -163,9 +157,6 @@ public:
     }
 };
 
-// =========================================================
-// 5. PLANTILLA GENÉRICA + STL + ARCHIVOS
-// =========================================================
 template <class T>
 class Inventario {
 private:
@@ -280,9 +271,6 @@ public:
     }
 };
 
-// =========================================================
-// 6. BLOQUE PRINCIPAL (Try / Catch Centralizado)
-// =========================================================
 int main() {
     Inventario<MaterialBibliografico> miLibreria;
     miLibreria.cargarDeArchivo();
