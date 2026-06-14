@@ -234,6 +234,22 @@ public:
         }
     }
 
+    string generarCodigoNuevo(string prefijo) const {
+        int maxId = 0;
+        for (const auto& elemento : listaElementos) {
+            string cod = elemento->getCodigo();
+            if (cod.length() >= prefijo.length() && cod.substr(0, prefijo.length()) == prefijo) {
+                try {
+                    int num = stoi(cod.substr(prefijo.length()));
+                    if (num > maxId) maxId = num;
+                } catch(...) {}
+            }
+        }
+        string numero = to_string(maxId + 1);
+        while (numero.length() < 3) numero = "0" + numero;
+        return prefijo + numero;
+    }
+
     void cargarDeArchivo() {
         ifstream archivo(nombreArchivo);
         string linea, tipo, cod, tit, autor_mes;
@@ -293,9 +309,10 @@ int main() {
 
             if (opcion == 1) {
                 string cod, tit, aut; int pags, stock;
-                cout << "Codigo: "; cin >> cod;
-                cout << "Titulo (sin espacios): "; cin >> tit;
-                cout << "Autor (sin espacios): "; cin >> aut;
+                cod = miLibreria.generarCodigoNuevo("L");
+                cout << "Codigo generado: " << cod << endl;
+                cout << "Titulo: "; getline(cin >> ws, tit);
+                cout << "Autor: "; getline(cin, aut);
                 
                 cout << "Paginas: "; 
                 pags = leerEnteroEstricto(false); 
@@ -307,13 +324,14 @@ int main() {
             } 
             else if (opcion == 2) {
                 string cod, tit, mes; int ed, stock;
-                cout << "Codigo: "; cin >> cod;
-                cout << "Titulo (sin espacios): "; cin >> tit;
+                cod = miLibreria.generarCodigoNuevo("R");
+                cout << "Codigo generado: " << cod << endl;
+                cout << "Titulo: "; getline(cin >> ws, tit);
                 
                 cout << "Edicion Nro: "; 
                 ed = leerEnteroEstricto(false);
                 
-                cout << "Mes: "; cin >> mes;
+                cout << "Mes: "; getline(cin >> ws, mes);
                 
                 cout << "Cantidad de ejemplares iniciales: "; 
                 stock = leerEnteroEstricto(false);
